@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upf-u
+  namespace: upf
+  labels:
+    app: upf-u
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: upf-u
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:         
+    metadata:
+      labels:
+        app: upf-u
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |-
+          [
+            {
+              "name": "upf-dpdk"
+            }
+          ]
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - upf-u
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: fpu
+        image: registry.local:9001/upf # Docker image
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["IPC_LOCK"]
+        env:
+        - name: UPF_RUNCONFIG
+          value: /opt/upf/config/fpu/fpu_docker.ini
+        - name: DPDK_PCIDEVICE
+          value: PCIDEVICE_INTEL_COM_INTEL_SRIOV_DPDK   #delimited by comma, for example A,B
+        command: [ "/opt/upf/bin/fpu" ]    #Start the program
+        stdin: true
+        tty: true
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - fpu
+          initialDelaySeconds: 6
+          periodSeconds: 6
+          successThreshold: 1
+          failureThreshold: 3
+        imagePullPolicy: Always  # Always | IfNotPresent | Never 
+        resources:
+          requests:
+            cpu: "5"
+            memory: "2Gi"
+            hugepages-1Gi: "2Gi"
+            intel.com/intel_sriov_dpdk: '1'
+          limits:
+            cpu: "5"
+            memory: "2Gi"
+            hugepages-1Gi: "2Gi"
+            intel.com/intel_sriov_dpdk: '1'
+        volumeMounts:
+        - name: hugepage
+          mountPath: /mnt/huge-1048576kB
+        - name: fpu-config
+          mountPath: /opt/upf/config/fpu
+      volumes:
+      - name: hugepage
+        emptyDir:
+          medium: HugePages
+      - name: fpu-config
+        configMap:
+            name: upf-config
+            items:
+            - key: fpu_config
+              path: fpu_docker.ini
+

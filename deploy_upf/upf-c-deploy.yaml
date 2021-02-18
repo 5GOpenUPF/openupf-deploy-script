@@ -1,0 +1,158 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: upf-c-a
+  namespace: upf
+  labels:
+    app: upf-c-a
+spec:
+  selector:
+    matchLabels:
+      app: upf-c-a
+  template:
+    metadata:
+      labels:
+        app: upf-c-a
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |-
+          [
+            {
+              "name": "upf-netdev"
+            }
+          ]
+    spec:
+      nodeName: controller-0
+      containers:
+        - name: smu
+          image: registry.local:9001/upf # Docker image
+          securityContext:
+            privileged: true
+          env:
+          - name: UPF_RUNCONFIG
+            value: /opt/upf/config/smu/smu_docker.ini
+          command: [ "/opt/upf/bin/smu" ]    # Start the program
+          stdin: true
+          tty: true
+          livenessProbe:
+            exec:
+              command:
+              - pgrep
+              - smu
+            initialDelaySeconds: 6
+            periodSeconds: 6
+            successThreshold: 1
+            failureThreshold: 3
+          imagePullPolicy: Always #    Always | IfNotPresent | Never 
+          volumeMounts:
+            - name: smu-config
+              mountPath: /opt/upf/config/smu
+          resources:
+            requests:
+              cpu: 1
+              memory: 4Gi
+              intel.com/intel_sriov_netdevice: '1'
+            limits:
+              cpu: 1
+              memory: 4Gi
+              intel.com/intel_sriov_netdevice: '1'
+          ports:
+            - name: backend-port
+              protocol: TCP
+              containerPort: 50000
+              hostPort: 50000
+            - name: ha-port
+              protocol: TCP
+              containerPort: 34567
+              hostPort: 34567
+            - name: restful-port
+              protocol: TCP
+              containerPort: 38080
+              hostPort: 38080
+      volumes:
+        - name: smu-config
+          configMap:
+            name: upf-config
+            items:
+            - key: smu_config_A
+              path: smu_docker.ini
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: upf-c-b
+  namespace: upf
+  labels:
+    app: upf-c-b
+spec:
+  selector:
+    matchLabels:
+      app: upf-c-b
+  template:
+    metadata:
+      labels:
+        app: upf-c-b
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |-
+          [
+            {
+              "name": "upf-netdev"
+            }
+          ]
+    spec:
+      nodeName: controller-1
+      containers:
+        - name: smu
+          image: registry.local:9001/upf # Docker image
+          securityContext:
+            privileged: true
+          env:
+          - name: UPF_RUNCONFIG
+            value: /opt/upf/config/smu/smu_docker.ini
+          command: [ "/opt/upf/bin/smu" ]    #Start the program
+          stdin: true
+          tty: true
+          livenessProbe:
+            exec:
+              command:
+              - pgrep
+              - smu
+            initialDelaySeconds: 6
+            periodSeconds: 6
+            successThreshold: 1
+            failureThreshold: 3
+          imagePullPolicy: Always #    Always | IfNotPresent | Never 
+          volumeMounts:
+            - name: smu-config
+              mountPath: /opt/upf/config/smu
+          resources:
+            requests:
+              cpu: 1
+              memory: 4Gi
+              intel.com/intel_sriov_netdevice: '1'
+            limits:
+              cpu: 1
+              memory: 4Gi
+              intel.com/intel_sriov_netdevice: '1'
+          ports:
+            - name: backend-port
+              protocol: TCP
+              containerPort: 50000
+              hostPort: 50000
+            - name: ha-port
+              protocol: TCP
+              containerPort: 34567
+              hostPort: 34567
+            - name: restful-port
+              protocol: TCP
+              containerPort: 38080
+              hostPort: 38080
+      volumes:
+        - name: smu-config
+          configMap:
+            name: upf-config
+            items:
+            - key: smu_config_B
+              path: smu_docker.ini
+
