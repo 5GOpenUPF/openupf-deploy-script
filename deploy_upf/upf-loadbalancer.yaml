@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: upf-lb-a
+  name: upf-lb
   namespace: upf
   labels:
-    app: upf-lb-a
+    app: upf-lb
 spec:
   selector:
     matchLabels:
-      app: upf-lb-a
+      app: upf-lb
   template:
     metadata:
       labels:
-        app: upf-lb-a
+        app: upf-lb
       annotations:
         k8s.v1.cni.cncf.io/networks: |-
           [
@@ -30,7 +30,7 @@ spec:
             capabilities:
               add: ["IPC_LOCK"]
           env:
-          - name: UPF_RUNCONFIG
+          - name: UPU_RUNCONFIG
             value: /opt/upf/config/lbu/lbu_docker.ini
           - name: DPDK_PCIDEVICE
             value: PCIDEVICE_INTEL_COM_INTEL_SRIOV_DPDK   #delimited by comma, for example A,B
@@ -80,92 +80,6 @@ spec:
         configMap:
             name: upf-config
             items:
-            - key: lbu_config_A
-              path: lbu_docker.ini
-
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: upf-lb-b
-  namespace: upf
-  labels:
-    app: upf-lb-b
-spec:
-  selector:
-    matchLabels:
-      app: upf-lb-b
-  template:
-    metadata:
-      labels:
-        app: upf-lb-b
-      annotations:
-        k8s.v1.cni.cncf.io/networks: |-
-          [
-            {
-              "name": "upf-dpdk"
-            }
-          ]
-    spec:
-      nodeName: controller-1
-      containers:
-        - name: lbu
-          image: registry.local:9001/upf # Docker image
-          securityContext:
-            privileged: true
-            capabilities:
-              add: ["IPC_LOCK"]
-          env:
-          - name: UPF_RUNCONFIG
-            value: /opt/upf/config/lbu/lbu_docker.ini
-          - name: DPDK_PCIDEVICE
-            value: PCIDEVICE_INTEL_COM_INTEL_SRIOV_DPDK   #delimited by comma, for example A,B
-          command: [ "/opt/upf/bin/lbu" ]    #Start the program
-          stdin: true
-          tty: true
-          livenessProbe:
-            exec:
-              command:
-              - pgrep
-              - lbu
-            initialDelaySeconds: 6
-            periodSeconds: 6
-            successThreshold: 1
-            failureThreshold: 3
-          imagePullPolicy: Always #    Always | IfNotPresent | Never 
-          volumeMounts:
-            - name: lbu-config
-              mountPath: /opt/upf/config/lbu
-            - name: hugepage
-              mountPath: /mnt/huge-1048576kB
-          resources:
-            requests:
-              cpu: 5
-              memory: 2Gi
-              hugepages-1Gi: "2Gi"
-              intel.com/intel_sriov_dpdk: '2'
-            limits:
-              cpu: 5
-              memory: 2Gi
-              hugepages-1Gi: "2Gi"
-              intel.com/intel_sriov_dpdk: '2'
-          ports:
-            - name: mgmtend-port
-              protocol: TCP
-              containerPort: 34434
-              hostPort: 34434
-            - name: ha-port
-              protocol: TCP
-              containerPort: 23323
-              hostPort: 23323
-      volumes:
-      - name: hugepage
-        emptyDir:
-          medium: HugePages
-      - name: lbu-config
-        configMap:
-            name: upf-config
-            items:
-            - key: lbu_config_B
+            - key: lbu_config
               path: lbu_docker.ini
 
