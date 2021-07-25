@@ -30,7 +30,7 @@ spec:
             capabilities:
               add: ["IPC_LOCK"]
           env:
-          - name: UPU_RUNCONFIG
+          - name: UPF_RUNCONFIG
             value: /opt/upf/config/lbu/lbu_docker.ini
           - name: DPDK_PCIDEVICE
             value: PCIDEVICE_INTEL_COM_INTEL_SRIOV_DPDK   #delimited by comma, for example A,B
