@@ -29,7 +29,7 @@ spec:
           securityContext:
             privileged: true
           env:
-          - name: UPU_RUNCONFIG
+          - name: UPF_RUNCONFIG
             value: /opt/upf/config/smu/smu_docker.ini
           command: [ "/opt/upf/bin/smu" ]    # Start the program
           stdin: true
